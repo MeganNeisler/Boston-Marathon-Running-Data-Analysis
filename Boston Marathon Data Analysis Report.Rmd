@@ -1,0 +1,25 @@
+---
+title: "Boston Marathon Running Analysis"
+author: "MNeisler"
+date: "12/15/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load packages and read csv files
+```{r}
+boston_csv_results <- read.csv("marathon_results_2016.csv") #read csv file
+summary(boston_csv_results)
+head(boston_csv_results)
+```
+
+
+
+
+
+
+## Including Plots
+
