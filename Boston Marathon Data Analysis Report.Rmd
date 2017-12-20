@@ -11,15 +11,85 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Load packages and read csv files
 ```{r}
-boston_csv_results <- read.csv("marathon_results_2016.csv") #read csv file
-summary(boston_csv_results)
-head(boston_csv_results)
+library(tidyverse)
+library("dplyr")
+
+boston_df <- read.csv("marathon_results_2016.csv") #read csv file
+summary(boston_df)
+head(boston_df)
+```
+
+Rename some of the columns to clarify variable.
+
+```{r}
+names(boston_df)[names(boston_df) == "M.F"] <- "sex"
+colnames(boston_df)
 ```
 
 
+## Exploratory Analysis
+
+I will use ggplot to creat some plots to determine the relationships between race time to age, gender, location.
+
+### Finishers by Age ###
+
+I'll first take a look at the minimum and maximum age of all offcial runners as well at the total number of runners to get a sense of the distribution. I used the "Overall" placement column to determine the total number of runners, assuming that ever finisher was provided a placement number.
+
+```{r}
+max_Age <- max(boston_df$Age, na.rm = TRUE)
+min_Age <- min(boston_df$Age, na.rm = TRUE)
+max_Age
+min_Age
+
+total_finishers <- max(boston_df$Overall, na.rm = TRUE)
+total_finishers
+
+```
+
+The we'll review the nunber of fishers per age group.
+```{r}
+ggplot(data=boston_df, aes(boston_df$Age)) + geom_histogram(binwidth = 1,
+                col="red", 
+                fill="red",                                      
+                alpha = .2) + 
+                labs(title="Boston Marathon Finishers by Age") +
+                labs(x="Age", y="Count") + 
+                xlim(c(18,83)) + 
+                ylim(c(0,1100)) 
+```
+
+## Finishers by Age and Gender ##
+
+I started by calculating the age of each each group (M and F).
+
+```{r}
+library(plyr)
+age_mu <- ddply(boston_df, "sex", summarise, grp.mean=mean(Age))
+head(mu)
+```
+
+The mean age of female runners (40) is about 5 years lower compared to the mean age of all male runners (45).
 
 
+```{r}
+# Use plot with semitransparent fill.
+p <- ggplot(boston_df, aes(x=Age, fill = sex, color=sex)) +
+  geom_histogram(alpha=0.5, position="dodge")
+
+# add mean lines
+p+geom_vline(data=age_mu, aes(xintercept=grp.mean, color=sex),
+             linetype="dashed")
+```
+
+## Finishers by Location ##
 
 
-## Including Plots
+## Top Finishers ##
+
+I'm interested in how the Top 20 finishers place changes over the race. For example, how likley is it that the first place runner after the 10K mark will finish first?
+
+## Notes/Questions to Ask
+- Complete general exporatory analysis (look at age, gender, and location)
+- Compare top 10 finishers after each mile mark to determine changes
+- Write Conclusion
 
