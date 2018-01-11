@@ -1,13 +1,16 @@
 ---
-title: "Boston Marathon Running Analysis"
+title: "2016 Boston Marathon Running Analysis"
 author: "MNeisler"
 date: "12/15/2017"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
+## Overview 
+
+I reviewed the 2016 Boston Marathon results for trends in runners age, location, and gender. I also reviewed the top 5 runners mile marker times to see how positions changed over the course of race. 
+
+The dataset used in this analysis came from http://registration.baa.org/2016/cf/Public/iframe_ResultsSearch.cfm
+
 
 ## Load packages and read csv files
 ```{r}
@@ -19,7 +22,7 @@ summary(boston_df)
 head(boston_df)
 ```
 
-Rename some of the columns to clarify variable.
+I renamed some of the columns to clarify variables.
 
 ```{r}
 names(boston_df)[names(boston_df) == "M.F"] <- "sex"
@@ -27,13 +30,13 @@ colnames(boston_df)
 ```
 
 
-## Exploratory Analysis
+## Exploratory Analysis ##
 
-I will use ggplot to creat some plots to determine the relationships between race time to age, gender, location.
+I then created some plots to determine the relationships between race time to age, gender, location.
 
 ### Finishers by Age ###
 
-I'll first take a look at the minimum and maximum age of all offcial runners as well at the total number of runners to get a sense of the distribution. I used the "Overall" placement column to determine the total number of runners, assuming that ever finisher was provided a placement number.
+I first took a look at the minimum and maximum age of all offcial runners as well at the total number of runners to get a sense of the distribution. I used the "Overall" placement column to determine the total number of runners. Not that this assumes that every finisher was provided a placement number.
 
 ```{r}
 max_Age <- max(boston_df$Age, na.rm = TRUE)
@@ -46,7 +49,7 @@ total_finishers
 
 ```
 
-The we'll review the nunber of fishers per age group.
+I then reviewed the nunber of finishers per age group.
 ```{r}
 ggplot(data=boston_df, aes(boston_df$Age)) + geom_histogram(binwidth = 1,
                 col="red", 
@@ -60,7 +63,7 @@ ggplot(data=boston_df, aes(boston_df$Age)) + geom_histogram(binwidth = 1,
 
 ## Finishers by Age and Gender ##
 
-I started by calculating the age of each each group (M and F).
+I started by calculating the mean age of each each group (M and F).
 
 ```{r}
 library(plyr)
@@ -74,22 +77,95 @@ The mean age of female runners (40) is about 5 years lower compared to the mean 
 ```{r}
 # Use plot with semitransparent fill.
 p <- ggplot(boston_df, aes(x=Age, fill = sex, color=sex)) +
-  geom_histogram(alpha=0.5, position="dodge")
+        geom_histogram(alpha=0.5, position="dodge") + 
+        labs(title="Boston Marathon Finishers by Age and Gender") +
+        labs(x="Age", y="Count") 
 
 # add mean lines
 p+geom_vline(data=age_mu, aes(xintercept=grp.mean, color=sex),
              linetype="dashed")
 ```
 
-## Finishers by Location ##
+### Finishers by Location ###
+
+The Boston marathon usually includes races from across the U.S as well as other countries. I plotted the boston marathon finishers for each country.  
+
+```{r}
+ggplot(data=boston_df, aes(boston_df$Country)) + 
+        geom_bar() +
+        labs(title="Boston Marathon Finishers by Country") +
+        labs(x="Location", y="Count") 
+```
+
+There is a much larger number of runners from the U.S. compared to all other Countries.  We can remove this outlier to help more clearly visualize countries outside of the USA. We'll also focus on the top 20 countries.
+
+```{r}
+
+boston_df_omitUS <- boston_df[boston_df$Country != "USA",]
+
+top_countries <- sort(table(boston_df_omitUS$Country), decreasing = T)
+head(top_countries)
+barplot(head(top_countries,10), main ="Boston Marathon Finishers by Location (Outside of US)", xlab = "Country", ylab = "Count", col = "darkblue")
+```
+
+Outside of the U.S., the majority of the boston marathon finishers came frm Canada, Great Britain, and Mexico. 
 
 
 ## Top Finishers ##
 
-I'm interested in how the Top 20 finishers place changes over the race. For example, how likley is it that the first place runner after the 10K mark will finish first?
+I'm interested in how the Top 5 finishers place changes over the race. For example, how likley is it that the first place runner after the 10K split time will finish first? The data set includes time markers at several distances. We'll first subset the data to focus on each group and then plot them together to compare.
 
-## Notes/Questions to Ask
-- Complete general exporatory analysis (look at age, gender, and location)
-- Compare top 10 finishers after each mile mark to determine changes
-- Write Conclusion
+```{r}
+names(boston_df)
+```
+
+I subsetted the data frame to focus on the name of each race finisher and their mile marker times, removing all variables that are not needed for this assessment. 
+
+```{r}
+boston_df_times = boston_df[, -c(1,3,4,5,6,7,8,9,19,20, 22,23,24)]
+head(boston_df_times)
+```
+I need to "melt" the data frame so that each measured variable is in its own row, along with the ID variables needed to uniquely identify it. 
+
+```{r}
+
+install.packages("reshape")
+library(reshape)
+boston_df_melt<- melt(boston_df_times, id.vars = "Name")
+tail(boston_df_melt)
+```
+
+```{r}
+#Change to column names to be more descriptive. 
+colnames(boston_df_melt)[2:3] <- c("Marker", "Time")
+boston_df_melt
+```
+
+I only want to look at the top 5 finishers of the race and see how their times changes over the duration of the marathon. 
+
+```{r}
+#Subset to focus on the top 5 runners. 
+boston_df_top5 <- boston_df_melt[boston_df_melt$Name == c("Hayle, Lemi Berhanu","Desisa, Lelisa","Tsegay, Yemane Adhane","Korir, Wesley", "Lonyangata, Paul"), ]
+boston_df_top5
+```
+
+Now that the data set is in the correct format, I can plot it.
+
+```{r}
+library(ggplot2)
+ggplot(boston_df_top5) +
+        geom_jitter(mapping = aes(x=Marker, y = Time, color= Name)) +
+        labs(title="Boston Marathon Top 5 Finisher Time Comparision") +
+        labs(x="Mile Marker", y="Time")
+```
+
+The above plot show frequent changes in placement for the first top 5 runners across the race. The first place runner at the end of the race, Lemi Hayle, did not take the lead until after the 40K mark. 
+
+Note: Since several of the top runners shared the same mile marker times, I used geom_jitter to avoid overalpping points. 
+
+## Next Steps ##
+
+This analysis focused on just the results of the 2016 Boston Marathon Race. I'd like to compare to other marathon races and different years at the same race to determine trends across races and years.  
+
+
 
